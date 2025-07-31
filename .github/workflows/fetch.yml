@@ -1,0 +1,40 @@
+# .github/workflows/fetch.yml
+
+name: Fetch Japan Post ZIP Codes
+
+on:
+  workflow_dispatch:       # 手動実行
+  schedule:
+    - cron: '0 3 1 * *'     # 毎月1日 3:00 JST（18:00 UTC）
+  push:
+    paths:
+      - .github/workflows/fetch.yml
+
+jobs:
+  fetch-zipcodes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install axios
+        run: npm install axios
+
+      - name: Run fetch script
+        run: node .github/scripts/fetch.js
+
+      - name: Commit and push files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/
+          git commit -m "chore: fetch data for ${YEAR}${MONTH}" || echo "No changes to commit"
+          git push
+        env:
+          YEAR: ${{ github.event.inputs.year || '' }}
+          MONTH: ${{ github.event.inputs.month || '' }}
